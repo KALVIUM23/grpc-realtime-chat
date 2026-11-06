@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package chat;
+
+option go_package = "github.com/sagar/grpc-chat-system/pkg/pb;pb";
+
+enum MessageType {
+  TEXT = 0;
+  JOIN = 1;
+  LEAVE = 2;
+  SYSTEM = 3;
+  MODERATION_FLAGGED = 4;
+  HEARTBEAT = 5;
+}
+
+message ChatMessage {
+  string id = 1;
+  string room_id = 2;
+  string sender = 3;
+  string content = 4;
+  int64 timestamp_ms = 5;
+  MessageType type = 6;
+  map<string, string> metadata = 7;
+}
+
+message SendResponse {
+  bool success = 1;
+  string message_id = 2;
+  string error_message = 3;
+}
+
+message RoomHistoryRequest {
+  string room_id = 1;
+  int32 limit = 2;
+}
+
+message RoomHistoryResponse {
+  repeated ChatMessage messages = 1;
+}
+
+message HealthCheckRequest {
+  string service = 1;
+}
+
+message HealthCheckResponse {
+  enum Status {
+    UNKNOWN = 0;
+    SERVING = 1;
+    NOT_SERVING = 2;
+  }
+  Status status = 1;
+}
+
+service ChatService {
+  // Bidirectional streaming RPC for real-time room communication
+  rpc ChatStream(stream ChatMessage) returns (stream ChatMessage);
+
+  // Unary RPC to publish a single message
+  rpc SendMessage(ChatMessage) returns (SendResponse);
+
+  // Unary RPC to fetch recent room history
+  rpc GetRoomHistory(RoomHistoryRequest) returns (RoomHistoryResponse);
+
+  // Health check RPC for K8s readiness/liveness probes
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+

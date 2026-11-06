@@ -1,0 +1,51 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: chat-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  chat-server-1:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.server
+    container_name: chat-server-pod-1
+    ports:
+      - "50051:50051"
+    environment:
+      - PORT=50051
+      - REDIS_ADDR=redis:6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=gemini-flash-latest
+      - BACKPRESSURE_POLICY=drop_oldest
+      - CLIENT_BUFFER_SIZE=64
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  chat-server-2:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.server
+    container_name: chat-server-pod-2
+    ports:
+      - "50052:50051"
+    environment:
+      - PORT=50051
+      - REDIS_ADDR=redis:6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=gemini-flash-latest
+      - BACKPRESSURE_POLICY=drop_oldest
+      - CLIENT_BUFFER_SIZE=64
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
